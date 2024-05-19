@@ -1,0 +1,9 @@
+name: Assign reviewer
+
+inptus:
+  github_token:
+    required: true
+  
+runs:
+  using: 'node16'
+  main: 'action.js'
