@@ -17,27 +17,25 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
       - name: Cache node modules
         uses: actions/cache@v3
-        id: npm-cache
+        id: bun-cache
         with:
           path: "**/node_modules"
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install Dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
+      - name: Install dependencies
+        if: steps.bun-cache.outputs.cache-hit != 'true'
         run: |
-          echo 'npm cache existed'
-          npm ci
+          echo 'bun cache existed'
+          bun install --frozen-lockfile
 
       - name: Assign Reviewer
         uses: ./.github/actions/assign-reviewer
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      
-
-      
-

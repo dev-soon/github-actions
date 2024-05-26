@@ -5,5 +5,5 @@ inptus:
     required: true
   
 runs:
-  using: 'node16'
-  main: 'action.js'
+  using: 'node20'
+  main: 'action.ts'
