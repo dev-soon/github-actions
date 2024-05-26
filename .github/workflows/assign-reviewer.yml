@@ -68,5 +68,5 @@ jobs:
       - name: Assign Reviewer
         uses: ./.github/actions/assign-reviewer
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           changed_files: ${{ steps.changed-files.outputs.result }}
