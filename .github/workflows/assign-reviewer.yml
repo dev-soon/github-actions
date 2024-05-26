@@ -17,27 +17,56 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
       - name: Cache node modules
         uses: actions/cache@v3
-        id: npm-cache
+        id: bun-cache
         with:
           path: "**/node_modules"
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install Dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
+      - name: Install dependencies
+        if: steps.bun-cache.outputs.cache-hit != 'true'
         run: |
-          echo 'npm cache existed'
-          npm ci
+          echo 'bun cache existed'
+          bun install --frozen-lockfile
+
+      - name: Cache tsc build
+        uses: actions/cache@v3
+        id: tsc-cache
+        with:
+          path: "**/assign-reviewer/*.js"
+          key: ${{ runner.os }}-tsc-${{ hashFiles('**/assign-reviewer/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-tsc-
+
+      - name: tsc build
+        if: steps.tsc-cache.outputs.cache-hit != 'true'
+        run: |
+          echo 'tsc build existed'
+          bun run build ./.github/actions/assign-reviewer/*.ts
+
+      - name: Get changed files
+        id: changed-files
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const changedFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              }
+            );
+            return changedFiles.map(f => f.filename).join(',');
 
       - name: Assign Reviewer
         uses: ./.github/actions/assign-reviewer
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      
-
-      
-
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          changed_files: ${{ steps.changed-files.outputs.result }}

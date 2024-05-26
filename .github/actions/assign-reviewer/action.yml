@@ -1,9 +1,16 @@
 name: Assign reviewer
 
-inptus:
+description: "Assign a reviewer to a pull request"
+
+inputs:
   github_token:
     required: true
-  
+    description: "GitHub token for authentication"
+  changed_files:
+    required: true
+    description: "List of files that have changed"
+
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'action.js'
+
