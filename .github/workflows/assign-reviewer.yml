@@ -35,7 +35,38 @@ jobs:
           echo 'bun cache existed'
           bun install --frozen-lockfile
 
+      - name: Cache tsc build
+        uses: actions/cache@v3
+        id: tsc-cache
+        with:
+          path: "**/assign-reviewer/*.js"
+          key: ${{ runner.os }}-tsc-${{ hashFiles('**/assign-reviewer/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-tsc-
+
+      - name: tsc build
+        if: steps.tsc-cache.outputs.cache-hit != 'true'
+        run: |
+          echo 'tsc build existed'
+          bun run build ./.github/actions/assign-reviewer/*.ts
+
+      - name: Get changed files
+        id: changed-files
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const changedFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              }
+            );
+            return changedFiles.map(f => f.filename).join(',');
+
       - name: Assign Reviewer
         uses: ./.github/actions/assign-reviewer
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          changed_files: ${{ steps.changed-files.outputs.result }}
