@@ -1,2 +1,9 @@
-- github: 94soon
-  slack: D0410B4S9DY
+teams:
+  docs-reviewers:
+    name: test-docs-reviewers
+    channel_id: C074RH9GE9M
+  temp-team1:
+    name: test-jaesoon
+    channel_id: C0687463UJ3
+users:
+  94soon: D0410B4S9DY

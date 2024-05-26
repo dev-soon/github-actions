@@ -5,7 +5,8 @@ import * as fs from 'fs';
 
 async function main() {
   try {
-    await selectRandomReviewer();
+    const reviewers = await selectRandomReviewer();
+    console.log(reviewers);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : "An unknown error occurred";
     setFailed(errMsg);
@@ -13,15 +14,26 @@ async function main() {
 }
 
 async function selectRandomReviewer() {
-  const reviewTeams = getReviewTeams();
-
-  const githubToken = getInput("github_token");
-  const octokit = getOctokit(githubToken);
-
-  const teamMembers = await getTeamMembers(octokit, reviewTeams);
-  console.log(teamMembers);
-
   const prCreator = context.payload.pull_request?.user.login;
+  const candidates = await getCandidates();
+
+  const reviewers = new Map<string, string>();
+
+  for (const [team, members] of Object.entries(candidates)) {
+    const eligibleMembers = members.filter(member => member !== prCreator && !reviewers.has(member));
+
+    if (eligibleMembers.length > 0) {
+      const randomReviewer = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
+      reviewers.set(team, randomReviewer);
+    }
+  }
+
+  return Object.fromEntries(reviewers);
+}
+
+async function getCandidates() {
+  const reviewTeams = getReviewTeams();
+  return await getTeamMembers(reviewTeams);
 }
 
 function getReviewTeams() {
@@ -50,7 +62,9 @@ function getReviewTeams() {
   return Array.from(responsibleTeams);
 }
 
-async function getTeamMembers(octokit: ReturnType<typeof getOctokit>, teams: string[]) {
+async function getTeamMembers(teams: string[]) {
+  const githubToken = getInput("github_token");
+  const octokit = getOctokit(githubToken);
   const teamMembersMap = new Map<string, string[]>();
 
   for (const team of teams) {
