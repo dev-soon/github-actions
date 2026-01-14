@@ -1,5 +1,6 @@
 import { getInput, setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
+import { withErrorHandling } from "../../utils/errorHandler";
 
 import * as fs from 'fs';
 
@@ -37,7 +38,15 @@ async function getCandidates() {
 }
 
 function getReviewTeams() {
-  const codeownersFile = fs.readFileSync('./.github/CODEOWNERS', 'utf8');
+  let codeownersFile: string;
+
+  try {
+    codeownersFile = fs.readFileSync('./.github/CODEOWNERS', 'utf8');
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    throw new Error(`Failed to read CODEOWNERS file: ${errorMsg}. Ensure the file exists at .github/CODEOWNERS`);
+  }
+
   const lines = codeownersFile.split('\n');
   const changedFiles = getInput("changed_files").replace(/"/g, '').split(",");
 
@@ -70,10 +79,13 @@ async function getTeamMembers(teams: string[]) {
   for (const team of teams) {
     const [org, teamSlug] = team.split('/').map(part => part.replace('@', ''));
 
-    const { data: teamMembers } = await octokit.rest.teams.listMembersInOrg({
-      org,
-      team_slug: teamSlug,
-    });
+    const { data: teamMembers } = await withErrorHandling(
+      async () => octokit.rest.teams.listMembersInOrg({
+        org,
+        team_slug: teamSlug,
+      }),
+      `GET /orgs/${org}/teams/${teamSlug}/members`
+    );
 
     const members = teamMembers.map(member => member.login);
     teamMembersMap.set(team, members);
